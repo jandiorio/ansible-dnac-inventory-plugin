@@ -1,0 +1,7 @@
+plugin: dna_center
+#plugin_type: inventory
+host: 'dnac-prod.campus.wwtatc.local'
+url: 'https://dnac-prod.campus.wwtatc.local'
+validate_certs: 'no'
+username: 'andiorij'
+password: '8635Dav1nc11417!'

@@ -53,7 +53,7 @@ below.
 
 TODO
 -----
-- determine how to add hostvars 
+
 - test consuming in playbook
 - integrate/test vaulted variables (loader should decrypt)
 

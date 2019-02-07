@@ -91,8 +91,19 @@ class InventoryModule(BaseInventoryPlugin):
              :param inventory A list of dictionaries representing the entire DNA Center inventory. 
              :return A List of tuples that include the management IP, device hostnanme, and the unique indentifier of the device.
         '''
-        host_list = [ (host['managementIpAddress'], host['hostname'], host['id']) for host in inventory['response'] if host['type'].find('Access Point') == -1 ]
-        
+        #host_list = [ (host['managementIpAddress'], host['hostname'], host['id']) for host in inventory['response'] if host['type'].find('Access Point') == -1 ]
+        host_list = []
+
+        for host in inventory['response']: 
+            if host['type'].find('Access Point') == -1: 
+                host_dict = {}
+                host_dict.update({
+                    'managementIpAddress': host['managementIpAddress'],
+                    'hostname' : host['hostname'],
+                    'id' : host['id']
+                })
+                host_list.append(host_dict)
+
         return host_list
 
     def _get_groups(self):
@@ -106,7 +117,7 @@ class InventoryModule(BaseInventoryPlugin):
         
         group_list = []
         
-        # groups = [(group['name'], group['id']) for group in groups if group['systemGroup'] == False]
+        # Build a list of dictionaries
         for group in groups: 
             if group['systemGroup'] == False: 
                 group_dict = {}
@@ -166,8 +177,9 @@ class InventoryModule(BaseInventoryPlugin):
 
         #  add the hosts too the inventory 
         for h in host_list: 
-            site_name = self._get_member_site( h[2] )
+            site_name = self._get_member_site( h['id'] )
             if site_name:
-              self.inventory.add_host(h[1], group=site_name)
-            # self.inventory.add_host(h[1], group='data_center_1')
+              self.inventory.add_host(h['hostname'], group=site_name)
+              self.inventory.set_variable(h['hostname'],'ansible_host',h['managementIpAddress'])
+            
 

@@ -28,6 +28,22 @@ https://docs.ansible.com/ansible/latest/plugins/inventory.html
 
 `export ANSIBLE_INVENTORY_PLUGINS=$(PWD)`
 
+The alternate way of configuring these options using the `ansible.cfg` file: 
+
+1.  Add the plugin name to the list of enabled plugins. The order determines the execution order.
+
+```ini
+[inventory]
+enable_plugins = host_list, script, yaml, ini, auto, dna_center
+```
+2. Add the path to the inventory_plugins setting in the defaults section. (use a colon : to separate multiple entries)
+```ini
+[defaults]
+inventory_plugins = /Users/andiorij/development/dnac_inventory_plugin
+```
+https://docs.ansible.com/ansible/latest/reference_appendices/config.html
+
+
 Example Usage
 --------------
 To test if your inventory source is functioning correctly, execute the command
@@ -40,3 +56,11 @@ TODO
 - determine how to add hostvars 
 - test consuming in playbook
 - integrate/test vaulted variables (loader should decrypt)
+
+References
+--------------
+https://github.com/ansible/ansible/blob/devel/lib/ansible/plugins/inventory
+
+https://docs.ansible.com/ansible/latest/user_guide/intro_dynamic_inventory.html#dynamic-inventory
+
+https://docs.ansible.com/ansible/latest/dev_guide/developing_inventory.html

@@ -1,7 +1,8 @@
 plugin: dna_center
 #plugin_type: inventory
-host: 'dnac-prod.campus.wwtatc.local'
-url: 'https://dnac-prod.campus.wwtatc.local'
+host: 'dna-3-dnac.campus.wwtatc.local'
+#url: 'https://dnac-prod.campus.wwtatc.local'
+#url: 'https://dna-3-dnac.campus.wwtatc.local'
 validate_certs: 'no'
-username: 'andiorij'
-password: '8635Dav1nc11417!'
+username: 'admin'
+password: 'M0bility@ccess'

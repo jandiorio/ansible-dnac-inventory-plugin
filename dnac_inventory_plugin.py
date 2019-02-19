@@ -94,12 +94,11 @@ def get_member_site(device_id):
 
 if __name__ == "__main__":
 
-    pwd = '8635Dav1nc11417!'
     #pwd = getpass.getpass("What is your password:")
-    host = 'dnac-prod.campus.wwtatc.local'
+    #host = 'dnac-prod.campus.wwtatc.local'
     
     try:
-        session, results = dnac_login('andiorij',pwd,host)
+        session, results = dnac_login(username,password,host)
 
         if results.status_code == 200:
             print("logged in successfully")

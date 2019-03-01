@@ -43,6 +43,9 @@ try:
 except ImportError:
     raise AnsibleError("Python requests module is required for this plugin.")
 
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+
 class InventoryModule(BaseInventoryPlugin):
 
     NAME = 'dna_center'
@@ -75,7 +78,7 @@ class InventoryModule(BaseInventoryPlugin):
           raise AnsibleError('failed to login. status code was not in the 200s')
         else: 
             self.session.headers.update({'x-auth-token':login_results.json()['Token']})
-            # self.session = session
+            
             return login_results
 
     def _get_inventory(self):
@@ -100,7 +103,9 @@ class InventoryModule(BaseInventoryPlugin):
                 host_dict.update({
                     'managementIpAddress': host['managementIpAddress'],
                     'hostname' : host['hostname'],
-                    'id' : host['id']
+                    'id': host['id'],
+                    'os': host['softwareType'], 
+                    'version': host['softwareVersion']
                 })
                 host_list.append(host_dict)
 
@@ -175,11 +180,26 @@ class InventoryModule(BaseInventoryPlugin):
         for group in group_list: 
             self.inventory.add_group(group['name'])
 
-        #  add the hosts too the inventory 
+        #  add the hosts to the inventory 
         for h in host_list: 
             site_name = self._get_member_site( h['id'] )
             if site_name:
               self.inventory.add_host(h['hostname'], group=site_name)
-              self.inventory.set_variable(h['hostname'],'ansible_host',h['managementIpAddress'])
-            
-
+              #  add variables to the hosts
+            #   self.inventory.set_variable(h['hostname'],'ansible_host',h['managementIpAddress'])
+              self.inventory.set_variable(h['hostname'], 'os', h['os'])
+              self.inventory.set_variable(h['hostname'], 'version', h['version'])
+              if h['os'].lower() in ['ios', 'ios-xe']:
+                  self.inventory.set_variable(h['hostname'], 'ansible_network_os', 'ios')
+                  self.inventory.set_variable(h['hostname'], 'ansible_connection', 'network_cli')
+                  self.inventory.set_variable(h['hostname'], 'ansible_become', 'yes')
+                  self.inventory.set_variable(h['hostname'], 'ansible_become_method', 'enable')
+              elif h['os'].lower() in ['nxos']:
+                  self.inventory.set_variable(h['hostname'], 'ansible_network_os', 'nxos')
+                  self.inventory.set_variable(h['hostname'], 'ansible_connection', 'network_cli')
+                  self.inventory.set_variable(h['hostname'], 'ansible_become', 'yes')
+                  self.inventory.set_variable(h['hostname'], 'ansible_become_method', 'enable')
+        #  add variables to the hosts 
+        #  - ansible_network_connection: network_cli 
+        #  - ansible_network_os: validate os
+        # 

@@ -4,11 +4,21 @@ DNA Center Inventory Plugin allows you to utilize the network discovery
 capabilities of Cisco's DNA Center controller as a source of inventory for
 Ansible Playbooks. 
 
+Functionality 
+--------------
+The DNA Center Inventory plugin will gather all groups (sites) and inventory devices from DNA Center.  The hosts are associated with appropriate sites.  
+
+The following host_vars are associated with the network devices: 
+- `ansible_connection` : **network_cli** for ios and nxos devices
+- `ansible_become_method` : for ios and nxos types. 
+- `ansible_become` : yes for ios and nxos types. 
+- `ansible_host` : using the managementIpAddress from DNA Center
+
 Requirements
 -------------
 - Python
 - Python requests module
-- Ansible (tested with 2.6.2)
+- Ansible 
 
 Setup
 ------

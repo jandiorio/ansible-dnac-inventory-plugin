@@ -1,2 +1,4 @@
 *.pyc
 inventory_plugins/*.pyc
+*workspace
+testing/

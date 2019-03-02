@@ -2,3 +2,6 @@
 inventory_plugins/*.pyc
 *workspace
 testing/
+dnac_inventory_plugin.py
+dnac_inventory_plugin.1.py
+d.py

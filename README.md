@@ -12,7 +12,10 @@ The following host_vars are associated with the network devices:
 - `ansible_connection` : **network_cli** for ios and nxos devices
 - `ansible_become_method` : for ios and nxos types. 
 - `ansible_become` : yes for ios and nxos types. 
-- `ansible_host` : using the managementIpAddress from DNA Center
+- `ansible_host` : using the managementIpAddress from DNA Center - conditionally mapped based on control file `dna_center.yml`
+- `ansible_network_os` : derived from `os` below and required for Ansible network_cli connection plugin
+- `os` : network operating system as stored in DNA Center's `softwareType`
+- `version` : network operating system version as stored in DNA Center's `softwareVersion`
 
 Requirements
 -------------
@@ -60,12 +63,13 @@ To test if your inventory source is functioning correctly, execute the command
 below. 
 
 `ansible-inventory --graph`
+`ansible-inventory --list`
 
 TODO
 -----
 
-- test consuming in playbook
-- integrate/test vaulted variables (loader should decrypt)
+- test consuming in playbook - complete
+- integrate/test vaulted variables (loader should decrypt) - complete
 
 References
 --------------
@@ -74,3 +78,23 @@ https://github.com/ansible/ansible/blob/devel/lib/ansible/plugins/inventory
 https://docs.ansible.com/ansible/latest/user_guide/intro_dynamic_inventory.html#dynamic-inventory
 
 https://docs.ansible.com/ansible/latest/dev_guide/developing_inventory.html
+
+Observed Issues
+----------------
+
+The inventory plugin builds the inventory from DNA Center includinig group mappings and some limited host variable mappings seen here: 
+
+```json
+"dna-3-d2.campus.wwtatc.local": {
+                "ansible_become": "yes", 
+                "ansible_become_method": "enable", 
+                "ansible_connection": "network_cli", 
+                "ansible_host": "192.168.19.3",
+                "ansible_network_os": "ios", 
+                "os": "IOS-XE", 
+                "version": "16.9.1"
+            }
+```
+**Issue Observed** - mapping of ansible_host is controlled by the plugin control file  `dna_center.yml`.  if thiisi value is mapped, that address will be used for connection.  It must be reachable.  In the lab environment, this was behind a NAT and not reachable.  
+
+**Issue Observed** - if `ansible_host` is not mapped, the `inventory_hostname` must be resolvable by the ansible control mode. 

@@ -1,4 +1,5 @@
-#/usr/bin/python
+# Copyright (c) 2019 World Wide Technology
+# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
@@ -25,10 +26,21 @@ DOCUMENTATION = r'''
         password: 
             description: user pass for the target system
             required: true
+        validate_certs: 
+            description: certificate validation
+            required: false
+            choices: ['yes', 'no']
+        use_dnac_mgmt_int: 
+            description: map the dnac mgmt interface to `ansible_host`
+            required: false
+            default: true
+            choices: [true, false]
 '''
 
 EXAMPLES = r'''
-    # ansible -i 'host1.example.com, host2' -m user -a 'name=me state=absent' all
+    ansible-inventory --graph
+    
+    ansible-inventory --list 
 '''
 
 from ansible.errors import AnsibleError, AnsibleParserError
@@ -43,8 +55,8 @@ try:
 except ImportError:
     raise AnsibleError("Python requests module is required for this plugin.")
 
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+import urllib3
+urllib3.disable_warnings()
 
 class InventoryModule(BaseInventoryPlugin):
 
@@ -165,6 +177,7 @@ class InventoryModule(BaseInventoryPlugin):
             self.host = self.get_option('host')
             self.username = self.get_option('username')
             self.password = self.get_option('password')
+            map_mgmt_ip = self.get_option('use_dnac_mgmt_int')
 
         except Exception as e: 
             raise AnsibleParserError('getting options failed:  {}'.format(e))
@@ -185,8 +198,11 @@ class InventoryModule(BaseInventoryPlugin):
             site_name = self._get_member_site( h['id'] )
             if site_name:
               self.inventory.add_host(h['hostname'], group=site_name)
+              
               #  add variables to the hosts
-            #   self.inventory.set_variable(h['hostname'],'ansible_host',h['managementIpAddress'])
+              if map_mgmt_ip:
+                  self.inventory.set_variable(h['hostname'],'ansible_host',h['managementIpAddress'])
+
               self.inventory.set_variable(h['hostname'], 'os', h['os'])
               self.inventory.set_variable(h['hostname'], 'version', h['version'])
               if h['os'].lower() in ['ios', 'ios-xe']:
@@ -194,12 +210,8 @@ class InventoryModule(BaseInventoryPlugin):
                   self.inventory.set_variable(h['hostname'], 'ansible_connection', 'network_cli')
                   self.inventory.set_variable(h['hostname'], 'ansible_become', 'yes')
                   self.inventory.set_variable(h['hostname'], 'ansible_become_method', 'enable')
-              elif h['os'].lower() in ['nxos']:
+              elif h['os'].lower() in ['nxos','nx-os']:
                   self.inventory.set_variable(h['hostname'], 'ansible_network_os', 'nxos')
                   self.inventory.set_variable(h['hostname'], 'ansible_connection', 'network_cli')
                   self.inventory.set_variable(h['hostname'], 'ansible_become', 'yes')
                   self.inventory.set_variable(h['hostname'], 'ansible_become_method', 'enable')
-        #  add variables to the hosts 
-        #  - ansible_network_connection: network_cli 
-        #  - ansible_network_os: validate os
-        # 

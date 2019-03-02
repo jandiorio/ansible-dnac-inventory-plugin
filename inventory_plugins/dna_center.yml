@@ -1,9 +1,11 @@
 plugin: dna_center
 #plugin_type: inventory
 host: 'dna-3-dnac.campus.wwtatc.local'
+# host: dnac-prod.campus.wwtatc.local
 #url: 'https://dnac-prod.campus.wwtatc.local'
 #url: 'https://dna-3-dnac.campus.wwtatc.local'
 validate_certs: 'no'
+use_dnac_mgmt_int: false
 username: 'admin'
 password: !vault |
           $ANSIBLE_VAULT;1.1;AES256

@@ -4,4 +4,5 @@ inventory_plugins/*.pyc
 testing/
 dnac_inventory_plugin.py
 dnac_inventory_plugin.1.py
+dnac_inventory_plugin_1.py
 d.py

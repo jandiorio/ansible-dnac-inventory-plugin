@@ -68,8 +68,7 @@ below.
 TODO
 -----
 
-- test consuming in playbook - complete
-- integrate/test vaulted variables (loader should decrypt) - complete
+- polish documents and release
 
 References
 --------------
@@ -95,6 +94,6 @@ The inventory plugin builds the inventory from DNA Center includinig group mappi
                 "version": "16.9.1"
             }
 ```
-**Issue Observed** - mapping of ansible_host is controlled by the plugin control file  `dna_center.yml`.  if thiisi value is mapped, that address will be used for connection.  It must be reachable.  In the lab environment, this was behind a NAT and not reachable.  
+**Issue Observed** - mapping of `ansible_host` is controlled by the plugin control file  `dna_center.yml`.  if this value is mapped, that address will be used for connection.  It must be reachable.  In the lab environment, this was behind a NAT and not reachable directly.  
 
 **Issue Observed** - if `ansible_host` is not mapped, the `inventory_hostname` must be resolvable by the ansible control mode. 

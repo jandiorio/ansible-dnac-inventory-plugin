@@ -139,7 +139,11 @@ class InventoryModule(BaseInventoryPlugin):
             if group['systemGroup'] == False: 
                 group_dict = {}
                 if group['name']:
-                    group_dict.update({'name': group['name'].replace(' ','_').lower(), 'id': group['id']})
+                    group_dict.update({
+                                      'name': group['name'].replace(' ','_').lower(),
+                                      'id': group['id'],
+                                      'parentId': group['parentId']
+                                      })
                     group_list.append(group_dict)
             else: 
                 continue
@@ -161,6 +165,26 @@ class InventoryModule(BaseInventoryPlugin):
             return site_name
         else: 
             sys.exit
+
+    def add_child_group(self, group_list):
+        ''' Associate groups with parent groups
+            :param group_list: list of group dictionaries containing name, id, parentId
+        '''
+
+        # Global is a system group and the parent of all top level groups
+        group_ids = [grp['id'] for grp in group_list ]
+        parent_name = ''
+
+        for group in group_list: 
+            
+            if group['parentId'] in group_ids:
+                parent_name = [grp['name'] for grp in group_list if grp['id'] == group['parentId'] ][0]
+            
+                try: 
+                    self.inventory.add_child(parent_name, group['name'])
+                except Exception as e:
+                    raise AnsibleParserError('adding child groups failed:  {} \n {}:{}'.format(e,group['name'],parent_name))
+
 
     def verify_file(self, path):
         return True  # looks good
@@ -192,7 +216,9 @@ class InventoryModule(BaseInventoryPlugin):
         group_list = self._get_groups()
         for group in group_list: 
             self.inventory.add_group(group['name'])
-
+        
+        self.add_child_group(group_list) 
+        
         #  add the hosts to the inventory 
         for h in host_list: 
             site_name = self._get_member_site( h['id'] )

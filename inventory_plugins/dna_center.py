@@ -70,6 +70,8 @@ class InventoryModule(BaseInventoryPlugin):
         self.password = None
         self.host = None
         self.session = None
+        self.use_dnac_mgmt_int = None
+
 
     def _login(self):
         '''
@@ -93,6 +95,7 @@ class InventoryModule(BaseInventoryPlugin):
             
             return login_results
 
+
     def _get_inventory(self):
         '''
             :return The json output from the request object response. 
@@ -100,6 +103,7 @@ class InventoryModule(BaseInventoryPlugin):
         inventory_url = 'https://' + self.host + '/api/v1/network-device'
         inventory_results = self.session.get(inventory_url)
         return inventory_results.json()
+
 
     def _get_hosts(self, inventory):
         '''
@@ -122,6 +126,7 @@ class InventoryModule(BaseInventoryPlugin):
                 host_list.append(host_dict)
 
         return host_list
+
 
     def _get_groups(self):
         '''
@@ -149,6 +154,7 @@ class InventoryModule(BaseInventoryPlugin):
                 continue
         return group_list
 
+
     def _get_member_site(self, device_id):
         '''
             :param device_id: The unique identifier of the target device.
@@ -165,6 +171,7 @@ class InventoryModule(BaseInventoryPlugin):
             return site_name
         else: 
             sys.exit
+
 
     def _add_groups(self, group_list):
         ''' Add groups and associate them with parent groups
@@ -188,44 +195,19 @@ class InventoryModule(BaseInventoryPlugin):
                     raise AnsibleParserError('adding child groups failed:  {} \n {}:{}'.format(e,group['name'],parent_name))
 
 
-    def verify_file(self, path):
-        return True  # looks good
+    def _add_hosts(self, host_list):
+        """
+            Add the devicies from DNAC Inventory to the Ansible Inventory
+            :param host_list: list of dictionaries for hosts retrieved from DNAC
 
-    def parse(self, inventory, loader, path, cache=True):
-        
-        super(InventoryModule, self).parse(inventory, loader, path, cache)
-        
-        # initializes variables read from the config file based on the documentation string definition. 
-        #  if the options are not defined in the docstring, the are not imported from config file
-        self._read_config_data(path)
-
-        try:
-            self.host = self.get_option('host')
-            self.username = self.get_option('username')
-            self.password = self.get_option('password')
-            map_mgmt_ip = self.get_option('use_dnac_mgmt_int')
-
-        except Exception as e: 
-            raise AnsibleParserError('getting options failed:  {}'.format(e))
-
-        login_results = self._login()
-
-        inventory = self._get_inventory()
-
-        host_list = self._get_hosts(inventory)
-      
-        #  add groups to the inventory 
-        group_list = self._get_groups()
-        self._add_groups(group_list)
-        
-        #  add the hosts to the inventory 
+        """
         for h in host_list: 
             site_name = self._get_member_site( h['id'] )
             if site_name:
               self.inventory.add_host(h['hostname'], group=site_name)
               
               #  add variables to the hosts
-              if map_mgmt_ip:
+              if self.use_dnac_mgmt_int:
                   self.inventory.set_variable(h['hostname'],'ansible_host',h['managementIpAddress'])
 
               self.inventory.set_variable(h['hostname'], 'os', h['os'])
@@ -240,3 +222,46 @@ class InventoryModule(BaseInventoryPlugin):
                   self.inventory.set_variable(h['hostname'], 'ansible_connection', 'network_cli')
                   self.inventory.set_variable(h['hostname'], 'ansible_become', 'yes')
                   self.inventory.set_variable(h['hostname'], 'ansible_become_method', 'enable')
+
+
+    def verify_file(self, path):
+        
+        valid = False
+        if super(InventoryModule, self).verify_file(path):
+            if path.endswith(('dnac.yaml', 'dnac.yml', 'dna_center.yaml', 'dna_center.yml')):
+                valid = True
+        return valid
+
+
+    def parse(self, inventory, loader, path, cache=True):
+        
+        super(InventoryModule, self).parse(inventory, loader, path, cache)
+        
+        # initializes variables read from the config file based on the documentation string definition. 
+        #  if the options are not defined in the docstring, the are not imported from config file
+        self._read_config_data(path)
+
+        # Set options values from configuration file
+        try:
+            self.host = self.get_option('host')
+            self.username = self.get_option('username')
+            self.password = self.get_option('password')
+            self.map_mgmt_ip = self.get_option('use_dnac_mgmt_int')
+        except Exception as e: 
+            raise AnsibleParserError('getting options failed:  {}'.format(e))
+
+        # Attempt login to DNAC
+        login_results = self._login()
+        if login_results.status_code not in [200,201,202,203]: 
+            raise AnsibleError('failed to login: {}'.format(login_results.status_code))
+        
+        # Obtain Inventory Data
+        inventory = self._get_inventory()
+      
+        #  add groups to the inventory 
+        group_list = self._get_groups()
+        self._add_groups(group_list)
+        
+        #  add the hosts to the inventory 
+        host_list = self._get_hosts(inventory)
+        self._add_hosts(host_list)

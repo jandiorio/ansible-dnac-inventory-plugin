@@ -55,9 +55,6 @@ try:
 except ImportError:
     raise AnsibleError("Python requests module is required for this plugin.")
 
-import urllib3
-urllib3.disable_warnings()
-
 class InventoryModule(BaseInventoryPlugin):
 
     NAME = 'dna_center'
@@ -86,10 +83,10 @@ class InventoryModule(BaseInventoryPlugin):
         try:
             login_results = self.session.post(login_url)
         except Exception as e:
-            raise AnsibleError('failed to login to DNA Center: {}'.format(e.message))
+            raise AnsibleError('failed to login to DNA Center: {}'.format(e))
 
         if login_results.status_code not in [200, 201, 202, 203, 204]:
-          raise AnsibleError('failed to login. status code was not in the 200s')
+            raise AnsibleError('failed to login. status code was not in the 200s')
         else: 
             self.session.headers.update({'x-auth-token':login_results.json()['Token']})
             

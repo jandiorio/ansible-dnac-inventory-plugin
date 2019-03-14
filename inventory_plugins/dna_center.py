@@ -68,13 +68,17 @@ class InventoryModule(BaseInventoryPlugin):
         self.host = None
         self.session = None
         self.use_dnac_mgmt_int = None
-
+        
+        # global attributes 
+        self._site_list = None
+        self._inventory = None
+        self._host_list = None
 
     def _login(self):
         '''
             :return Login results from the request.
         '''
-        login_url='https://' + self.host + '/api/system/v1/auth/token'
+        login_url='https://' + self.host + '/dna/system/api/v1/auth/token'
         self.session = requests.session()
         self.session.auth = self.username, self.password
         self.session.verify = False
@@ -97,20 +101,23 @@ class InventoryModule(BaseInventoryPlugin):
         '''
             :return The json output from the request object response. 
         '''
-        inventory_url = 'https://' + self.host + '/api/v1/network-device'
+
+        inventory_url = 'https://' + self.host + '/dna/intent/api/v1/network-device'
         inventory_results = self.session.get(inventory_url)
+        
+        self._inventory = inventory_results.json()
+
         return inventory_results.json()
 
-
-    def _get_hosts(self, inventory):
+    def _get_hosts(self):
         '''
              :param inventory A list of dictionaries representing the entire DNA Center inventory. 
              :return A List of tuples that include the management IP, device hostnanme, and the unique indentifier of the device.
         '''
-        #host_list = [ (host['managementIpAddress'], host['hostname'], host['id']) for host in inventory['response'] if host['type'].find('Access Point') == -1 ]
+
         host_list = []
 
-        for host in inventory['response']: 
+        for host in self._inventory['response']: 
             if host['type'].find('Access Point') == -1: 
                 host_dict = {}
                 host_dict.update({
@@ -121,35 +128,32 @@ class InventoryModule(BaseInventoryPlugin):
                     'version': host['softwareVersion']
                 })
                 host_list.append(host_dict)
-
+        
+        self._host_list = host_list
+        
         return host_list
 
-
-    def _get_groups(self):
+    def _get_sites(self):
         '''
-            :return A list of tuples for groups containing the group name and the unique ID of the group.
+            :return A list of tuples for sites containing the site name and the unique ID of the site.
         '''
-        group_url = 'https://' + self.host + '/api/v1/group'
-        group_results = self.session.get(group_url)
+        site_url = 'https://' + self.host + '/dna/intent/api/v1/topology/site-topology'
+        site_results = self.session.get(site_url)
 
-        groups = group_results.json()['response']
+        sites = site_results.json()['response']['sites']
         
-        group_list = []
+        site_list = []
+        site_dict = {}
+
+        for site in sites: 
+            
+            site_dict = {}
+            site_dict.update({'name': site['name'].replace(' ','_').lower(), 'id': site['id'], 'parentId': site['parentId']})
+            site_list.append(site_dict)
         
-        # Build a list of dictionaries
-        for group in groups: 
-            if group['systemGroup'] == False: 
-                group_dict = {}
-                if group['name']:
-                    group_dict.update({
-                                      'name': group['name'].replace(' ','_').lower(),
-                                      'id': group['id'],
-                                      'parentId': group['parentId']
-                                      })
-                    group_list.append(group_dict)
-            else: 
-                continue
-        return group_list
+        self._site_list = site_list
+        
+        return site_list
 
 
     def _get_member_site(self, device_id):
@@ -157,68 +161,74 @@ class InventoryModule(BaseInventoryPlugin):
             :param device_id: The unique identifier of the target device.
             :return A single string representing the name of the SITE group of which the device is a member.
         '''
-        site_assignments = 'https://' + self.host + '/api/v1/member/group?id=' + device_id 
-        results = self.session.get(site_assignments)
-        sites = results.json()
+    
+        url = 'https://' + self.host + '/dna/intent/api/v1/topology/physical-topology?nodeType=device'
+        results = self.session.get(url)
+        devices = results.json()['response']['nodes']
         
-        site_name = [ site['name'] for site in sites['response'][device_id] if 'SITE' in site['groupTypeList'] ]
-        
+        site_id = [ device['additionalInfo']['siteid'] for device in devices if device['id'] == device_id ][0]
+  
+        site_name = [ site['name'] for site in self._site_list if site['id'] == site_id ]
+
         if len(site_name) == 1:
-            site_name = site_name[0].replace(' ','_').lower()
-            return site_name
+            return site_name[0]
         else: 
-            sys.exit
+            raise AnsibleError('failed to locate site_name for device id: {} and site_id {}'.format(device_id,site_id))
 
-
-    def _add_groups(self, group_list):
+    def _add_sites(self):
         ''' Add groups and associate them with parent groups
-            :param group_list: list of group dictionaries containing name, id, parentId
+            :param site_list: list of group dictionaries containing name, id, parentId
         '''
             
         # Global is a system group and the parent of all top level groups
-        group_ids = [grp['id'] for grp in group_list ]
+        site_ids = [ ste['id'] for ste in self._site_list ]
         parent_name = ''
 
-        for group in group_list: 
-
-            self.inventory.add_group(group['name'])
+        # Add all sites
+        for site in self._site_list: 
+            self.inventory.add_group(site['name'])
+        
+        # Add parent/child relationship
+        for site in self._site_list: 
             
-            if group['parentId'] in group_ids:
-                parent_name = [grp['name'] for grp in group_list if grp['id'] == group['parentId'] ][0]
+            if site['parentId'] in site_ids:
+                parent_name = [ ste['name'] for ste in self._site_list if ste['id'] == site['parentId'] ][0]
             
                 try: 
-                    self.inventory.add_child(parent_name, group['name'])
+                    self.inventory.add_child(parent_name, site['name'])
                 except Exception as e:
-                    raise AnsibleParserError('adding child groups failed:  {} \n {}:{}'.format(e,group['name'],parent_name))
+                    raise AnsibleParserError('adding child sites failed:  {} \n {}:{}'.format(e,site['name'],parent_name))
 
 
-    def _add_hosts(self, host_list):
+    def _add_hosts(self):
         """
             Add the devicies from DNAC Inventory to the Ansible Inventory
             :param host_list: list of dictionaries for hosts retrieved from DNAC
 
         """
-        for h in host_list: 
+        for h in self._host_list: 
             site_name = self._get_member_site( h['id'] )
             if site_name:
-              self.inventory.add_host(h['hostname'], group=site_name)
-              
-              #  add variables to the hosts
-              if self.use_dnac_mgmt_int:
-                  self.inventory.set_variable(h['hostname'],'ansible_host',h['managementIpAddress'])
+                self.inventory.add_host(h['hostname'], group=site_name)
+                
+                #  add variables to the hosts
+                if self.use_dnac_mgmt_int:
+                    self.inventory.set_variable(h['hostname'],'ansible_host',h['managementIpAddress'])
 
-              self.inventory.set_variable(h['hostname'], 'os', h['os'])
-              self.inventory.set_variable(h['hostname'], 'version', h['version'])
-              if h['os'].lower() in ['ios', 'ios-xe']:
-                  self.inventory.set_variable(h['hostname'], 'ansible_network_os', 'ios')
-                  self.inventory.set_variable(h['hostname'], 'ansible_connection', 'network_cli')
-                  self.inventory.set_variable(h['hostname'], 'ansible_become', 'yes')
-                  self.inventory.set_variable(h['hostname'], 'ansible_become_method', 'enable')
-              elif h['os'].lower() in ['nxos','nx-os']:
-                  self.inventory.set_variable(h['hostname'], 'ansible_network_os', 'nxos')
-                  self.inventory.set_variable(h['hostname'], 'ansible_connection', 'network_cli')
-                  self.inventory.set_variable(h['hostname'], 'ansible_become', 'yes')
-                  self.inventory.set_variable(h['hostname'], 'ansible_become_method', 'enable')
+                self.inventory.set_variable(h['hostname'], 'os', h['os'])
+                self.inventory.set_variable(h['hostname'], 'version', h['version'])
+                if h['os'].lower() in ['ios', 'ios-xe']:
+                    self.inventory.set_variable(h['hostname'], 'ansible_network_os', 'ios')
+                    self.inventory.set_variable(h['hostname'], 'ansible_connection', 'network_cli')
+                    self.inventory.set_variable(h['hostname'], 'ansible_become', 'yes')
+                    self.inventory.set_variable(h['hostname'], 'ansible_become_method', 'enable')
+                elif h['os'].lower() in ['nxos','nx-os']:
+                    self.inventory.set_variable(h['hostname'], 'ansible_network_os', 'nxos')
+                    self.inventory.set_variable(h['hostname'], 'ansible_connection', 'network_cli')
+                    self.inventory.set_variable(h['hostname'], 'ansible_become', 'yes')
+                    self.inventory.set_variable(h['hostname'], 'ansible_become_method', 'enable')
+            else:
+                raise AnsibleError('no site name found for host: {} with site_id {}'.format(h['id'], self._site_list))
 
 
     def verify_file(self, path):
@@ -253,12 +263,12 @@ class InventoryModule(BaseInventoryPlugin):
             raise AnsibleError('failed to login: {}'.format(login_results.status_code))
         
         # Obtain Inventory Data
-        inventory = self._get_inventory()
+        self._get_inventory()
       
-        #  add groups to the inventory 
-        group_list = self._get_groups()
-        self._add_groups(group_list)
+        # Add groups to the inventory 
+        self._get_sites()
+        self._add_sites()
         
-        #  add the hosts to the inventory 
-        host_list = self._get_hosts(inventory)
-        self._add_hosts(host_list)
+        # Add the hosts to the inventory 
+        self._get_hosts()
+        self._add_hosts()

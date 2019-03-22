@@ -166,14 +166,21 @@ class InventoryModule(BaseInventoryPlugin):
         results = self.session.get(url)
         devices = results.json()['response']['nodes']
         
-        site_id = [ device['additionalInfo']['siteid'] for device in devices if device['id'] == device_id ][0]
-  
+        # Get the one device we are looking for
+        device = [ dev for dev in devices if dev['id'] == device_id ][0]
+
+        # Extract the siteid from the device data 
+        site_id = device.get('additionalInfo').get('siteid')
+        
+        # set the site name from the self._site_list
         site_name = [ site['name'] for site in self._site_list if site['id'] == site_id ]
 
+        # return the name if it exists
         if len(site_name) == 1:
             return site_name[0]
-        else: 
-            raise AnsibleError('failed to locate site_name for device id: {} and site_id {}'.format(device_id,site_id))
+        elif len(site_name) == 0: 
+            return 'ungrouped'
+            
 
     def _add_sites(self):
         ''' Add groups and associate them with parent groups

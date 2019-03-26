@@ -6,13 +6,13 @@ Ansible Playbooks.
 
 Functionality 
 --------------
-The DNA Center Inventory plugin will gather all groups (sites) and inventory devices from DNA Center.  The hosts are associated with appropriate sites.  
+The DNA Center Inventory plugin will gather all groups (sites) and inventory devices from DNA Center.  The hosts are associated with appropriate sites in the hierarchy. 
 
 The following host_vars are associated with the network devices: 
 - `ansible_connection` : **network_cli** for ios and nxos devices
-- `ansible_become_method` : for ios and nxos types. 
-- `ansible_become` : yes for ios and nxos types. 
-- `ansible_host` : using the managementIpAddress from DNA Center - conditionally mapped based on control file `dna_center.yml`
+- `ansible_become_method` : for ios and nxos types. (**enable**)
+- `ansible_become` : **yes** for ios and nxos types. 
+- `ansible_host` : using the `managementIpAddress` from DNA Center - conditionally mapped based on control file `dna_center.yml`.  (*see note at the bottom*)
 - `ansible_network_os` : derived from `os` below and required for Ansible network_cli connection plugin
 - `os` : network operating system as stored in DNA Center's `softwareType`
 - `version` : network operating system version as stored in DNA Center's `softwareVersion`
@@ -20,22 +20,22 @@ The following host_vars are associated with the network devices:
 Requirements
 -------------
 - Python
-- Python requests module
-- Ansible 
+- Python `requests` module
+- Ansible - tested 2.6.2 and 2.7.2
+- Cisco DNA Center - tested 1.2.8 (cisco recommended version as of 3/26/19)
 
 Setup
 ------
 - Clone or fork this repo
-- place the files in the appropriate location or update the environment
+- Place the files in the appropriate location or update the environment
   variable with the location
 
-Most ansible inventory plugins are disabled by default so the must be enabled
+Most Ansible inventory plugins are disabled by default so the must be enabled
 to be used. 
 
 The Ansible documentation will explain how to consume inventory plugins. 
 
 https://docs.ansible.com/ansible/latest/plugins/inventory.html
-
 
 `export ANSIBLE_INVENTORY_ENABLED=dna_center`
 
@@ -65,10 +65,18 @@ below.
 `ansible-inventory --graph`
 `ansible-inventory --list`
 
+Supporting Collateral
+-----
+
+- Link to intro video
+- Link to demo video
+- link to Cisco CodeExchange>
+
 TODO
 -----
 
 - polish documents and release
+- add links to collateral
 
 References
 --------------
@@ -97,3 +105,4 @@ The inventory plugin builds the inventory from DNA Center includinig group mappi
 **Issue Observed** - mapping of `ansible_host` is controlled by the plugin control file  `dna_center.yml`.  if this value is mapped, that address will be used for connection.  It must be reachable.  In the lab environment, this was behind a NAT and not reachable directly.  
 
 **Issue Observed** - if `ansible_host` is not mapped, the `inventory_hostname` must be resolvable by the ansible control mode. 
+

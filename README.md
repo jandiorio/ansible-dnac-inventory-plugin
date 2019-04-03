@@ -17,15 +17,22 @@ The following host_vars are associated with the network devices:
 - `os` : network operating system as stored in DNA Center's `softwareType`
 - `version` : network operating system version as stored in DNA Center's `softwareVersion`
 
-Requirements
+Getting Started
 -------------
-- Python
-- Python `requests` module
-- Ansible - tested 2.6.2 and 2.7.2
-- Cisco DNA Center - tested 1.2.8 (cisco recommended version as of 3/26/19)
 
-Setup
-------
+Follow the instructions below to install the Ansible Inventory Plugin for Cisco DNA Center on your Ansible control node. 
+
+### Requirements
+
+To utilize the inventory plugin your environment would need to include the following elements: 
+
+- Ansible - (tested 2.6.2 and 2.7.2)
+- Cisco DNA Center - tested 1.2.8 (cisco recommended version as of 3/26/19)
+- Python `requests` module
+
+### Setup
+Follow these steps to prepare your environment appropriately to consume the inventory plugin. 
+
 - Clone or fork this repo
 - Place the files in the appropriate location or update the environment
   variable with the location
@@ -68,15 +75,7 @@ below.
 Supporting Collateral
 -----
 
-- Link to intro video
-- Link to demo video
-- link to Cisco CodeExchange>
-
-TODO
------
-
-- polish documents and release
-- add links to collateral
+- [Ansible Inventory Plugin Overview Slides](https://www.slideshare.net/secret/P4ltP8elhAw0A)
 
 References
 --------------
@@ -106,3 +105,6 @@ The inventory plugin builds the inventory from DNA Center includinig group mappi
 
 **Issue Observed** - if `ansible_host` is not mapped, the `inventory_hostname` must be resolvable by the ansible control mode. 
 
+## Author
+
+**Jeff Andiorio** - World Wide Technology 

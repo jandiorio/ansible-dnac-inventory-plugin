@@ -70,6 +70,7 @@ To test if your inventory source is functioning correctly, execute the command
 below. 
 
 `ansible-inventory --graph`
+
 `ansible-inventory --list`
 
 Supporting Collateral

@@ -94,7 +94,7 @@ username: '{{ your_dnac_username }}'
 password: '{{ your_dnac_pwd }}'
 ```
 
-**STEP 5. **  Execute the example below to test functionality
+**STEP 5.**  Execute the example below to test functionality
 
 ```shell
 vagrant@ubuntu-xenial:~/dna_3_legacy$ ansible-inventory -i inventory_plugins/ --graph

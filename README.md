@@ -40,9 +40,29 @@ To utilize the inventory plugin your environment would need to include the follo
 ### Setup
 Follow these steps to prepare your environment appropriately to consume the inventory plugin. 
 
-- Clone or fork this repo
-- Place the files in the appropriate location or update the environment
-  variable with the location
+**STEP 1.**  Clone or fork this repo
+
+```shell
+
+vagrant@ubuntu-xenial:~$ git clone https://github.com/jandiorio/ansible-dnac-inventory-plugin
+Cloning into 'ansible-dnac-inventory-plugin'...
+remote: Enumerating objects: 101, done.
+remote: Counting objects: 100% (101/101), done.
+remote: Compressing objects: 100% (47/47), done.
+remote: Total 101 (delta 49), reused 101 (delta 49), pack-reused 0
+Receiving objects: 100% (101/101), 32.73 KiB | 0 bytes/s, done.
+Resolving deltas: 100% (49/49), done.
+Checking connectivity... done.
+```
+
+**STEP 2.** Place the files in the appropriate location or update the environment
+variable with the location
+
+```shell
+vagrant@ubuntu-xenial:~$ cp -r ansible-dnac-inventory-plugin/inventory_plugins dna_3_legacy/
+```
+
+**STEP 3.**  Enable the inventory plugin
 
 Most Ansible inventory plugins are disabled by default so the must be enabled
 to be used. 
@@ -69,6 +89,38 @@ enable_plugins = host_list, script, yaml, ini, auto, dna_center
 inventory_plugins = /Users/andiorij/development/dnac_inventory_plugin
 ```
 https://docs.ansible.com/ansible/latest/reference_appendices/config.html
+
+**STEP 4.**  Update the plugin configuration file `inventory_plugins/dna_center.yml`
+
+```yaml
+plugin: dna_center
+host: 'dna-3-dnac.campus.wwtatc.local'
+validate_certs: 'no'
+use_dnac_mgmt_int: false
+username: '{{ your_dnac_username }}'
+password: '{{ your_dnac_pwd }}'
+```
+
+**STEP 5.**  Execute the example below to test functionality
+
+```shell
+vagrant@ubuntu-xenial:~/dna_3_legacy$ ansible-inventory -i inventory_plugins/ --graph
+
+/home/vagrant/.local/lib/python2.7/site-packages/urllib3/connectionpool.py:847: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#ssl-warnings
+  InsecureRequestWarning)
+  
+@all:
+  |--@central:
+  |  |--@maryland_heights:
+  |  |  |--@atc56:
+  |  |  |  |--dna-3-a1.campus.wwtatc.local
+  |  |  |  |--dna-3-a2.campus.wwtatc.local
+  |  |  |  |--dna-3-d1.campus.wwtatc.local
+  |  |  |  |--dna-3-d2.campus.wwtatc.local
+  |--@east:
+  |--@ungrouped:
+  |--@west:
+```
 
 
 Example Usage

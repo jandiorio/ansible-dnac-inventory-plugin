@@ -7,9 +7,9 @@ Ansible Playbooks.
 DevNet Code Exchange 
 ---------------------
 
-[![published](https://static.production.devnetcloud.com/codeexchange/assets/images/devnet-published.svg)](https://developer.cisco.com/codeexchange/github/repo/jandiorio/ansible-dnac-inventory-plugin)
+This repository is featured on Cisco DevNet Code Exchange.
 
-This repository is feature on Cisco DevNet Code Exchange. 
+[![published](https://static.production.devnetcloud.com/codeexchange/assets/images/devnet-published.svg)](https://developer.cisco.com/codeexchange/github/repo/jandiorio/ansible-dnac-inventory-plugin)
 
 Functionality 
 --------------

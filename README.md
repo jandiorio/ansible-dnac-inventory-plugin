@@ -4,6 +4,13 @@ DNA Center Inventory Plugin allows you to utilize the network discovery
 capabilities of Cisco's DNA Center controller as a source of inventory for
 Ansible Playbooks. 
 
+DevNet Code Exchange 
+---------------------
+
+[![published](https://static.production.devnetcloud.com/codeexchange/assets/images/devnet-published.svg)](https://developer.cisco.com/codeexchange/github/repo/jandiorio/ansible-dnac-inventory-plugin)
+
+This repository is feature on Cisco DevNet Code Exchange. 
+
 Functionality 
 --------------
 The DNA Center Inventory plugin will gather all groups (sites) and inventory devices from DNA Center.  The hosts are associated with appropriate sites in the hierarchy. 

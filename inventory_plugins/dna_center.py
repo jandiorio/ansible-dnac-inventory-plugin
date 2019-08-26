@@ -101,8 +101,10 @@ class InventoryModule(BaseInventoryPlugin):
         '''
             :return The json output from the request object response. 
         '''
-
-        inventory_url = 'https://' + self.host + '/dna/intent/api/v1/network-device'
+        
+        # Version 1.3.0.3 update removed the 'dna/intent' but the api still works
+        # inventory_url = 'https://' + self.host + '/dna/intent/api/v1/network-device'
+        inventory_url = 'https://' + self.host + '/api/v1/network-device'
         inventory_results = self.session.get(inventory_url)
         
         self._inventory = inventory_results.json()
@@ -125,7 +127,8 @@ class InventoryModule(BaseInventoryPlugin):
                     'hostname' : host['hostname'],
                     'id': host['id'],
                     'os': host['softwareType'], 
-                    'version': host['softwareVersion']
+                    'version': host['softwareVersion'], 
+                    'role': host['role']
                 })
                 host_list.append(host_dict)
         
@@ -137,7 +140,10 @@ class InventoryModule(BaseInventoryPlugin):
         '''
             :return A list of tuples for sites containing the site name and the unique ID of the site.
         '''
-        site_url = 'https://' + self.host + '/dna/intent/api/v1/topology/site-topology'
+
+        # Version 1.3.0.3 update removed the 'dna/intent' but the api still works
+        # site_url = 'https://' + self.host + '/dna/intent/api/v1/topology/site-topology'
+        site_url = 'https://' + self.host + '/api/v1/topology/site-topology'
         site_results = self.session.get(site_url)
 
         sites = site_results.json()['response']['sites']
@@ -161,8 +167,10 @@ class InventoryModule(BaseInventoryPlugin):
             :param device_id: The unique identifier of the target device.
             :return A single string representing the name of the SITE group of which the device is a member.
         '''
-    
-        url = 'https://' + self.host + '/dna/intent/api/v1/topology/physical-topology?nodeType=device'
+     
+        # Version 1.3.0.3 update remoted the 'dna/intent' from the URI but the API still works. 
+        # url = 'https://' + self.host + '/dna/intent/api/v1/topology/physical-topology?nodeType=device'
+        url = 'https://' + self.host + '/api/v1/topology/physical-topology?nodeType=device'
         results = self.session.get(url)
         devices = results.json()['response']['nodes']
         

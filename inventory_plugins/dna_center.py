@@ -103,8 +103,8 @@ class InventoryModule(BaseInventoryPlugin):
         '''
         
         # Version 1.3.0.3 update removed the 'dna/intent' but the api still works
-        # inventory_url = 'https://' + self.host + '/dna/intent/api/v1/network-device'
-        inventory_url = 'https://' + self.host + '/api/v1/network-device'
+        inventory_url = 'https://' + self.host + '/dna/intent/api/v1/network-device'
+        # inventory_url = 'https://' + self.host + '/api/v1/network-device'
         inventory_results = self.session.get(inventory_url)
         
         self._inventory = inventory_results.json()
@@ -142,8 +142,8 @@ class InventoryModule(BaseInventoryPlugin):
         '''
 
         # Version 1.3.0.3 update removed the 'dna/intent' but the api still works
-        # site_url = 'https://' + self.host + '/dna/intent/api/v1/topology/site-topology'
-        site_url = 'https://' + self.host + '/api/v1/topology/site-topology'
+        site_url = 'https://' + self.host + '/dna/intent/api/v1/topology/site-topology'
+        # site_url = 'https://' + self.host + '/api/v1/topology/site-topology'
         site_results = self.session.get(site_url)
 
         sites = site_results.json()['response']['sites']
@@ -169,8 +169,8 @@ class InventoryModule(BaseInventoryPlugin):
         '''
      
         # Version 1.3.0.3 update remoted the 'dna/intent' from the URI but the API still works. 
-        # url = 'https://' + self.host + '/dna/intent/api/v1/topology/physical-topology?nodeType=device'
-        url = 'https://' + self.host + '/api/v1/topology/physical-topology?nodeType=device'
+        url = 'https://' + self.host + '/dna/intent/api/v1/topology/physical-topology?nodeType=device'
+        # url = 'https://' + self.host + '/api/v1/topology/physical-topology?nodeType=device'
         results = self.session.get(url)
         devices = results.json()['response']['nodes']
         

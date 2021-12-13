@@ -1,6 +1,7 @@
 plugin: dna_center
 host: 'dna-3-dnac.campus.wwtatc.local'
-validate_certs: 'no'
+validate_certs: false
 use_dnac_mgmt_int: false
 username: 'admin'
 password: 'test1234'
+toplevel: 'dnac3'

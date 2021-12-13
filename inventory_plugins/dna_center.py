@@ -29,12 +29,16 @@ DOCUMENTATION = r'''
         validate_certs: 
             description: certificate validation
             required: false
-            choices: ['yes', 'no']
+            default: true
+            choices: [true, false]
         use_dnac_mgmt_int: 
-            description: map the dnac mgmt interface to `ansible_host`
+            description: use the dnac mgmt interface as `ansible_host`
             required: false
             default: true
             choices: [true, false]
+        toplevel: 
+            description: toplevel group to add groups/hosts to ansible inventory
+            required: false
 '''
 
 EXAMPLES = r'''
@@ -51,7 +55,7 @@ import json
 import sys
 
 try: 
-    import requests
+    import requests, urllib3
 except ImportError:
     raise AnsibleError("Python requests module is required for this plugin.")
 
@@ -68,6 +72,7 @@ class InventoryModule(BaseInventoryPlugin):
         self.host = None
         self.session = None
         self.use_dnac_mgmt_int = None
+        self.toplevel = None
         
         # global attributes 
         self._site_list = None
@@ -80,8 +85,13 @@ class InventoryModule(BaseInventoryPlugin):
         '''
         login_url='https://' + self.host + '/dna/system/api/v1/auth/token'
         self.session = requests.session()
+        if self.validate_certs:
+            self.session.verify = True
+        else: 
+            self.session.verify = False
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            
         self.session.auth = self.username, self.password
-        self.session.verify = False
         self.session.headers.update({'Content-Type':'application/json'})
         
         try:
@@ -128,7 +138,10 @@ class InventoryModule(BaseInventoryPlugin):
                     'id': host['id'],
                     'os': host['softwareType'], 
                     'version': host['softwareVersion'], 
-                    'role': host['role']
+                    'reachabilityStatus': host['reachabilityStatus'],
+                    'role': host['role'],
+                    'serialNumber': host['serialNumber'].split(', '),
+                    'series': host['series']
                 })
                 host_list.append(host_dict)
         
@@ -152,9 +165,15 @@ class InventoryModule(BaseInventoryPlugin):
         site_dict = {}
 
         for site in sites: 
+
+            special_char_map = { ord('ä'):'ae', ord('ü'):'ue', ord('ö'):'oe', ord('ß'):'ss', ord('('):'_', ord(')'):'_', ord(' '): '_', ord('-'):'_', ord('.'): '_' }
+            normalized_site_name = site['name'].translate(special_char_map).lower()
             
             site_dict = {}
-            site_dict.update({'name': site['name'].replace(' ','_').lower(), 'id': site['id'], 'parentId': site['parentId']})
+            if(site['locationType'] == 'building'):
+                site_dict.update({'name': "bld_"+normalized_site_name, 'id': site['id'], 'parentId': site['parentId']})
+            else:
+                site_dict.update({'name': normalized_site_name, 'id': site['id'], 'parentId': site['parentId']})
             site_list.append(site_dict)
         
         self._site_list = site_list
@@ -199,20 +218,28 @@ class InventoryModule(BaseInventoryPlugin):
         site_ids = [ ste['id'] for ste in self._site_list ]
         parent_name = ''
 
+        if self.toplevel:
+            self.inventory.add_group(self.toplevel)
+        
         # Add all sites
         for site in self._site_list: 
             self.inventory.add_group(site['name'])
-        
+
         # Add parent/child relationship
         for site in self._site_list: 
             
             if site['parentId'] in site_ids:
                 parent_name = [ ste['name'] for ste in self._site_list if ste['id'] == site['parentId'] ][0]
-            
                 try: 
                     self.inventory.add_child(parent_name, site['name'])
                 except Exception as e:
                     raise AnsibleParserError('adding child sites failed:  {} \n {}:{}'.format(e,site['name'],parent_name))
+            elif self.toplevel:
+                try: 
+                    self.inventory.add_child(self.toplevel, site['name'])
+                except Exception as e:
+                    raise AnsibleParserError('adding child sites failed:  {} \n {}:{}'.format(e,site['name'],parent_name))
+                
 
 
     def _add_hosts(self):
@@ -232,6 +259,9 @@ class InventoryModule(BaseInventoryPlugin):
 
                 self.inventory.set_variable(h['hostname'], 'os', h['os'])
                 self.inventory.set_variable(h['hostname'], 'version', h['version'])
+                self.inventory.set_variable(h['hostname'], 'reachability_status', h['reachabilityStatus'])
+                self.inventory.set_variable(h['hostname'], 'serial_number', h['serialNumber'])
+                self.inventory.set_variable(h['hostname'], 'hw_type', h['series'])
                 if h['os'].lower() in ['ios', 'ios-xe']:
                     self.inventory.set_variable(h['hostname'], 'ansible_network_os', 'ios')
                     self.inventory.set_variable(h['hostname'], 'ansible_connection', 'network_cli')
@@ -258,7 +288,7 @@ class InventoryModule(BaseInventoryPlugin):
     def parse(self, inventory, loader, path, cache=True):
         
         super(InventoryModule, self).parse(inventory, loader, path, cache)
-        
+
         # initializes variables read from the config file based on the documentation string definition. 
         #  if the options are not defined in the docstring, the are not imported from config file
         self._read_config_data(path)
@@ -268,7 +298,9 @@ class InventoryModule(BaseInventoryPlugin):
             self.host = self.get_option('host')
             self.username = self.get_option('username')
             self.password = self.get_option('password')
-            self.map_mgmt_ip = self.get_option('use_dnac_mgmt_int')
+            self.use_dnac_mgmt_int = self.get_option('use_dnac_mgmt_int')
+            self.validate_certs = self.get_option('validate_certs')
+            self.toplevel = self.get_option('toplevel')
         except Exception as e: 
             raise AnsibleParserError('getting options failed:  {}'.format(e))
 
@@ -287,3 +319,4 @@ class InventoryModule(BaseInventoryPlugin):
         # Add the hosts to the inventory 
         self._get_hosts()
         self._add_hosts()
+

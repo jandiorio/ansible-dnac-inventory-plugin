@@ -95,10 +95,11 @@ https://docs.ansible.com/ansible/latest/reference_appendices/config.html
 ```yaml
 plugin: dna_center
 host: 'dna-3-dnac.campus.wwtatc.local'
-validate_certs: 'no'
+validate_certs: false
 use_dnac_mgmt_int: false
 username: '{{ your_dnac_username }}'
 password: '{{ your_dnac_pwd }}'
+toplevel:
 ```
 
 **STEP 5.**  Execute the example below to test functionality

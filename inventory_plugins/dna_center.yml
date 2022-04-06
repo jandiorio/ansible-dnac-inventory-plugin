@@ -1,7 +1,12 @@
+---
 plugin: dna_center
-host: 'dna-3-dnac.campus.wwtatc.local'
+host: '10.85.54.180'
 validate_certs: false
 use_dnac_mgmt_int: false
-username: 'admin'
-password: 'test1234'
-toplevel: 'dnac3'
+username: 'igor'
+password: 'Igor1234'
+#toplevel: 'dnac3'
+# network-device API call returns maximum of 500 records
+# pagination is necessary for large-scale deployments which
+# have more than 500 devices under management
+api_record_limit: 1

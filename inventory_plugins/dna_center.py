@@ -39,6 +39,9 @@ DOCUMENTATION = r'''
         toplevel: 
             description: toplevel group to add groups/hosts to ansible inventory
             required: false
+        api_record_limit:
+            description: DNAC API calls return maximum of <api_record_limit> records per invocation. Defaults to 500 records
+            required: true
 '''
 
 EXAMPLES = r'''
@@ -56,8 +59,8 @@ import sys
 
 try: 
     import requests, urllib3
-except ImportError:
-    raise AnsibleError("Python requests module is required for this plugin.")
+except ImportError as e:
+    raise AnsibleError('Python requests module is required for this plugin. Error: %s' % to_native(e))
 
 class InventoryModule(BaseInventoryPlugin):
 
@@ -73,6 +76,7 @@ class InventoryModule(BaseInventoryPlugin):
         self.session = None
         self.use_dnac_mgmt_int = None
         self.toplevel = None
+        self.api_record_limit = 500
         
         # global attributes 
         self._site_list = None
@@ -97,21 +101,34 @@ class InventoryModule(BaseInventoryPlugin):
         try:
             login_results = self.session.post(login_url)
         except Exception as e:
-            raise AnsibleError('failed to login to DNA Center: {}'.format(e))
+            raise AnsibleError('failed to login to DNA Center: %s' % to_native(e))
 
         if login_results.status_code not in [200, 201, 202, 203, 204]:
-            raise AnsibleError('failed to login. status code was not in the 200s')
+            raise AnsibleError('failed to login. Status [%s] code was not in the 200s' % to_native(login_results))
         else: 
             self.session.headers.update({'x-auth-token':login_results.json()['Token']})
             
             return login_results
 
+    def _get_device_count(self):
+        '''
+            :return Integer number of DNAC managed devices 
+        '''
+        device_count_url = 'https://' + self.host + '/dna/intent/api/v1/network-device/count'
+
+        try:
+            device_count_results = self.session.get(device_count_url)
+            device_count = int(device_count_results.json()["response"])
+        except Exception as e: 
+            raise AnsibleParserError('Getting device count failed:  %s' % to_native(e))
+
+        return device_count
 
     def _get_inventory(self):
         '''
             :return The json output from the request object response. 
         '''
-        
+
         # Version 1.3.0.3 update removed the 'dna/intent' but the api still works
         inventory_url = 'https://' + self.host + '/dna/intent/api/v1/network-device'
         # inventory_url = 'https://' + self.host + '/api/v1/network-device'
@@ -277,10 +294,11 @@ class InventoryModule(BaseInventoryPlugin):
 
 
     def verify_file(self, path):
-        
+        ''' return true/false if this is possibly a valid file for this plugin to consume '''
         valid = False
         if super(InventoryModule, self).verify_file(path):
-            if path.endswith(('dnac.yaml', 'dnac.yml', 'dna_center.yaml', 'dna_center.yml')):
+            # base class verifies that file exists and is readable by current user
+            if path.endswith(('dna_center.yml')):
                 valid = True
         return valid
 
@@ -301,14 +319,17 @@ class InventoryModule(BaseInventoryPlugin):
             self.use_dnac_mgmt_int = self.get_option('use_dnac_mgmt_int')
             self.validate_certs = self.get_option('validate_certs')
             self.toplevel = self.get_option('toplevel')
+            self.api_record_limit = self.get_option('api_record_limit')
         except Exception as e: 
-            raise AnsibleParserError('getting options failed:  {}'.format(e))
+            raise AnsibleParserError('getting options failed:  %s' % to_native(login_results))
 
         # Attempt login to DNAC
         login_results = self._login()
         if login_results.status_code not in [200,201,202,203]: 
-            raise AnsibleError('failed to login: {}'.format(login_results.status_code))
-        
+            raise AnsibleError('failed to login: %s' % to_native(login_results))
+
+        self._get_device_count()
+
         # Obtain Inventory Data
         self._get_inventory()
       

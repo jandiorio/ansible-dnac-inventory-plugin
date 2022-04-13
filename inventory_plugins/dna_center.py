@@ -97,6 +97,9 @@ class InventoryModule(BaseInventoryPlugin):
             :return Login results from the request.
         '''
 
+        if not self.validate_certs:
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
         try:
             self._dnac_api = DNACenterAPI(
                 username=self.username, 
@@ -109,9 +112,9 @@ class InventoryModule(BaseInventoryPlugin):
             
             return self._dnac_api
 
-    def _get_device_count(self):
+    def _get_inventory(self):
         '''
-            :return Integer number of DNAC managed devices 
+            :return The json output from the request object response. 
         '''
 
         try:
@@ -119,22 +122,18 @@ class InventoryModule(BaseInventoryPlugin):
         except ApiError as e: 
             raise AnsibleParserError('Getting device count failed:  %s' % to_native(e))
 
-        return device_count
-
-    def _get_inventory(self):
-        '''
-            :return The json output from the request object response. 
-        '''
-
-        device_count = self._get_device_count()
+        # calculate the number of API calls (ie pages) in case if device count
+        # exceeds the api_record_limit
         offset_pages = math.ceil(device_count / self.api_record_limit)
-        starting_offset = 1
 
-        for offset in range(starting_offset, offset_pages):
+        for offset in range(offset_pages):
+            # DNAC API takes starting index of a device in a list
+            # beginning with index of '1'
+            start_index = offset * self.api_record_limit + 1
             try:
                 inventory_results = (self._dnac_api.devices.get_network_device_by_pagination_range(
                     records_to_return=self.api_record_limit, 
-                    start_index=offset)).response
+                    start_index=start_index)).response
             except ApiError as e:
                 raise AnsibleParserError('Getting device inventory failed:  %s' % to_native(e))
 

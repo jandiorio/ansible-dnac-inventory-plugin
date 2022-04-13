@@ -150,13 +150,13 @@ class InventoryModule(BaseInventoryPlugin):
         host_list = []
 
         for host in self._inventory: 
-            if host['type'].find('Access Point') == -1: 
+            if host['family'].find('Unified AP') == -1: 
                 host_dict = {}
                 host_dict.update({
                     'managementIpAddress': host['managementIpAddress'],
                     'hostname' : host['hostname'],
                     'id': host['id'],
-                    'os': host['softwareType'], 
+                    'os': (host['softwareType'] if host['family'].find('Unified AP') == -1 else host['family']), 
                     'version': host['softwareVersion'], 
                     'reachabilityStatus': host['reachabilityStatus'],
                     'role': host['role'],
@@ -279,7 +279,7 @@ class InventoryModule(BaseInventoryPlugin):
                 self.inventory.set_variable(h['hostname'], 'reachability_status', h['reachabilityStatus'])
                 self.inventory.set_variable(h['hostname'], 'serial_number', h['serialNumber'])
                 self.inventory.set_variable(h['hostname'], 'hw_type', h['series'])
-                if h['os'].lower() in ['ios', 'ios-xe']:
+                if h['os'].lower() in ['ios', 'ios-xe', 'unified ap']:
                     self.inventory.set_variable(h['hostname'], 'ansible_network_os', 'ios')
                     self.inventory.set_variable(h['hostname'], 'ansible_connection', 'network_cli')
                     self.inventory.set_variable(h['hostname'], 'ansible_become', 'yes')

@@ -143,6 +143,8 @@ below.
 
 `ansible-inventory --list`
 
+`ansible-playbook -i inventory_plugins/  samples/sample_playbook.yml`
+
 Supporting Collateral
 -----
 

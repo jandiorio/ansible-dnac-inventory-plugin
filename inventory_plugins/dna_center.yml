@@ -12,4 +12,4 @@ password: 'Igor1234'
 # network-device API call returns maximum of 500 records
 # pagination is necessary for large-scale deployments which
 # have more than 500 devices under management
-api_record_limit: 1
+api_record_limit: 500

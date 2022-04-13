@@ -20,6 +20,9 @@ DOCUMENTATION = r'''
         host: 
             description: FQDN of the target host 
             required: true
+        dnac_version:
+            description: DNAC PythonSDK requires a supported DNAC version key
+            required: true
         username: 
             description: user credential for target system 
             required: true
@@ -54,11 +57,15 @@ from ansible.errors import AnsibleError, AnsibleParserError
 from ansible.module_utils._text import to_bytes, to_native
 from ansible.parsing.utils.addresses import parse_address
 from ansible.plugins.inventory import BaseInventoryPlugin
+
 import json
 import sys
+import math 
 
 try: 
     import requests, urllib3
+    from dnacentersdk import DNACenterAPI
+    from dnacentersdk import ApiError
 except ImportError as e:
     raise AnsibleError('Python requests module is required for this plugin. Error: %s' % to_native(e))
 
@@ -73,53 +80,43 @@ class InventoryModule(BaseInventoryPlugin):
         self.username = None
         self.password = None
         self.host = None
-        self.session = None
+        self.dnac_version = None
+        # self.session = None
         self.use_dnac_mgmt_int = None
         self.toplevel = None
         self.api_record_limit = 500
         
         # global attributes 
         self._site_list = None
-        self._inventory = None
+        self._inventory = []
         self._host_list = None
+        self._dnac_api = None
 
     def _login(self):
         '''
             :return Login results from the request.
         '''
-        login_url='https://' + self.host + '/dna/system/api/v1/auth/token'
-        self.session = requests.session()
-        if self.validate_certs:
-            self.session.verify = True
-        else: 
-            self.session.verify = False
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-            
-        self.session.auth = self.username, self.password
-        self.session.headers.update({'Content-Type':'application/json'})
-        
-        try:
-            login_results = self.session.post(login_url)
-        except Exception as e:
-            raise AnsibleError('failed to login to DNA Center: %s' % to_native(e))
 
-        if login_results.status_code not in [200, 201, 202, 203, 204]:
-            raise AnsibleError('failed to login. Status [%s] code was not in the 200s' % to_native(login_results))
-        else: 
-            self.session.headers.update({'x-auth-token':login_results.json()['Token']})
+        try:
+            self._dnac_api = DNACenterAPI(
+                username=self.username, 
+                password=self.password, 
+                base_url='https://' + self.host, 
+                version=self.dnac_version,
+                verify=self.validate_certs)
+        except ApiError as e:
+            raise AnsibleError('failed to login to DNA Center: %s' % to_native(e))
             
-            return login_results
+            return self._dnac_api
 
     def _get_device_count(self):
         '''
             :return Integer number of DNAC managed devices 
         '''
-        device_count_url = 'https://' + self.host + '/dna/intent/api/v1/network-device/count'
 
         try:
-            device_count_results = self.session.get(device_count_url)
-            device_count = int(device_count_results.json()["response"])
-        except Exception as e: 
+            device_count = (self._dnac_api.devices.get_device_count()).response
+        except ApiError as e: 
             raise AnsibleParserError('Getting device count failed:  %s' % to_native(e))
 
         return device_count
@@ -129,14 +126,21 @@ class InventoryModule(BaseInventoryPlugin):
             :return The json output from the request object response. 
         '''
 
-        # Version 1.3.0.3 update removed the 'dna/intent' but the api still works
-        inventory_url = 'https://' + self.host + '/dna/intent/api/v1/network-device'
-        # inventory_url = 'https://' + self.host + '/api/v1/network-device'
-        inventory_results = self.session.get(inventory_url)
-        
-        self._inventory = inventory_results.json()
+        device_count = self._get_device_count()
+        offset_pages = math.ceil(device_count / self.api_record_limit)
+        starting_offset = 1
 
-        return inventory_results.json()
+        for offset in range(starting_offset, offset_pages):
+            try:
+                inventory_results = (self._dnac_api.devices.get_network_device_by_pagination_range(
+                    records_to_return=self.api_record_limit, 
+                    start_index=offset)).response
+            except ApiError as e:
+                raise AnsibleParserError('Getting device inventory failed:  %s' % to_native(e))
+
+            self._inventory = [*self._inventory, *inventory_results]
+
+        return self._inventory
 
     def _get_hosts(self):
         '''
@@ -146,7 +150,7 @@ class InventoryModule(BaseInventoryPlugin):
 
         host_list = []
 
-        for host in self._inventory['response']: 
+        for host in self._inventory: 
             if host['type'].find('Access Point') == -1: 
                 host_dict = {}
                 host_dict.update({
@@ -171,12 +175,10 @@ class InventoryModule(BaseInventoryPlugin):
             :return A list of tuples for sites containing the site name and the unique ID of the site.
         '''
 
-        # Version 1.3.0.3 update removed the 'dna/intent' but the api still works
-        site_url = 'https://' + self.host + '/dna/intent/api/v1/topology/site-topology'
-        # site_url = 'https://' + self.host + '/api/v1/topology/site-topology'
-        site_results = self.session.get(site_url)
-
-        sites = site_results.json()['response']['sites']
+        try:
+            sites = (self._dnac_api.topology.get_site_topology()).response.sites
+        except ApiError as e:
+            raise AnsibleError('Getting site topology failed:  %s' % to_native(e))
         
         site_list = []
         site_dict = {}
@@ -203,12 +205,11 @@ class InventoryModule(BaseInventoryPlugin):
             :param device_id: The unique identifier of the target device.
             :return A single string representing the name of the SITE group of which the device is a member.
         '''
-     
-        # Version 1.3.0.3 update remoted the 'dna/intent' from the URI but the API still works. 
-        url = 'https://' + self.host + '/dna/intent/api/v1/topology/physical-topology?nodeType=device'
-        # url = 'https://' + self.host + '/api/v1/topology/physical-topology?nodeType=device'
-        results = self.session.get(url)
-        devices = results.json()['response']['nodes']
+
+        try:
+            devices = (self._dnac_api.topology.get_physical_topology()).response.nodes
+        except ApiError as e:
+            raise AnsibleError('Getting member site failed: %s' % to_native(e))
         
         # Get the one device we are looking for
         device = [ dev for dev in devices if dev['id'] == device_id ][0]
@@ -294,6 +295,7 @@ class InventoryModule(BaseInventoryPlugin):
 
 
     def verify_file(self, path):
+        
         ''' return true/false if this is possibly a valid file for this plugin to consume '''
         valid = False
         if super(InventoryModule, self).verify_file(path):
@@ -314,6 +316,7 @@ class InventoryModule(BaseInventoryPlugin):
         # Set options values from configuration file
         try:
             self.host = self.get_option('host')
+            self.dnac_version = self.get_option('dnac_version')
             self.username = self.get_option('username')
             self.password = self.get_option('password')
             self.use_dnac_mgmt_int = self.get_option('use_dnac_mgmt_int')
@@ -321,14 +324,10 @@ class InventoryModule(BaseInventoryPlugin):
             self.toplevel = self.get_option('toplevel')
             self.api_record_limit = self.get_option('api_record_limit')
         except Exception as e: 
-            raise AnsibleParserError('getting options failed:  %s' % to_native(login_results))
+            raise AnsibleParserError('getting options failed:  %s' % to_native(e))
 
         # Attempt login to DNAC
-        login_results = self._login()
-        if login_results.status_code not in [200,201,202,203]: 
-            raise AnsibleError('failed to login: %s' % to_native(login_results))
-
-        self._get_device_count()
+        self._login()
 
         # Obtain Inventory Data
         self._get_inventory()

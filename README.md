@@ -33,17 +33,18 @@ Follow the instructions below to install the Ansible Inventory Plugin for Cisco 
 
 To utilize the inventory plugin your environment would need to include the following elements: 
 
-- Ansible - (tested 2.6.2 and 2.7.2)
-- Cisco DNA Center - tested 1.2.8 (cisco recommended version as of 3/26/19)
+- Ansible - (tested 2.12.3)
+- Python - min 3.5 (tested 3.10.3)
+- Cisco DNA Center - tested 2.3.2. Refer to DNA Center SDK for supported DNAC Versions: https://dnacentersdk.readthedocs.io/en/latest/api/intro.html
 - Python `requests` module
+- Python DNA Center SDK `DNACenterAPI` module
 
 ### Setup
 Follow these steps to prepare your environment appropriately to consume the inventory plugin. 
 
-**STEP 1.**  Clone or fork this repo
+**STEP 1.**  Clone or fork this repo and install Python modules
 
 ```shell
-
 vagrant@ubuntu-xenial:~$ git clone https://github.com/jandiorio/ansible-dnac-inventory-plugin
 Cloning into 'ansible-dnac-inventory-plugin'...
 remote: Enumerating objects: 101, done.
@@ -53,6 +54,8 @@ remote: Total 101 (delta 49), reused 101 (delta 49), pack-reused 0
 Receiving objects: 100% (101/101), 32.73 KiB | 0 bytes/s, done.
 Resolving deltas: 100% (49/49), done.
 Checking connectivity... done.
+
+pip3 install -r requirements.txt
 ```
 
 **STEP 2.** Place the files in the appropriate location or update the environment
@@ -93,10 +96,12 @@ https://docs.ansible.com/ansible/latest/reference_appendices/config.html
 **STEP 4.**  Update the plugin configuration file `inventory_plugins/dna_center.yml`
 
 ```yaml
+---
 plugin: dna_center
-host: 'dna-3-dnac.campus.wwtatc.local'
-validate_certs: false
-use_dnac_mgmt_int: false
+host: 'dnac-ip-address.local'
+dnac_version: '2.2.3.3'
+validate_certs: False
+use_dnac_mgmt_int: False
 username: '{{ your_dnac_username }}'
 password: '{{ your_dnac_pwd }}'
 toplevel:
@@ -146,6 +151,10 @@ https://docs.ansible.com/ansible/latest/user_guide/intro_dynamic_inventory.html#
 
 https://docs.ansible.com/ansible/latest/dev_guide/developing_inventory.html
 
+https://dnacentersdk.readthedocs.io/en/latest/installation.html
+
+https://dnacentersdk.readthedocs.io/en/latest/api/api.html
+
 Observed Issues
 ----------------
 
@@ -166,6 +175,26 @@ The inventory plugin builds the inventory from DNA Center includinig group mappi
 
 **Issue Observed** - if `ansible_host` is not mapped, the `inventory_hostname` must be resolvable by the ansible control mode. 
 
+**Issue Observed** - when executing on OSX Monterey, following error message observed:
+
+```
+objc[13508]: +[__NSCFConstantString initialize] may have been in progress in another thread when fork() was called. We cannot safely call it or ignore it in the fork() child process. Crashing instead. Set a breakpoint on objc_initializeAfterForkError to debug.
+```
+
+Workaround: set environment variable prior to execution
+```
+export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+```
+
+**Issue Observed** - If DNA Center Site Hierarchy contains site names starting with a number, plugin outputs a warning message
+```
+[WARNING]: Invalid characters were found in group names but not replaced, use -vvvv to see details
+```
+
+
 ## Author
 
 **Jeff Andiorio** - World Wide Technology 
+**Igor Manassypov** - Cisco Systems, <imanassy@cisco.com>
+ - [04/12/2022] Updated plugin dependencies to DNA Center SDK for proper abstraction
+ - [04/12/2022] Fixed issue with large deployments in which DNA Center API result is limited to 500 records

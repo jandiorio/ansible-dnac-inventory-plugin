@@ -4,6 +4,11 @@ DNA Center Inventory Plugin allows you to utilize the network discovery
 capabilities of Cisco's DNA Center controller as a source of inventory for
 Ansible Playbooks. 
 
+Change Log
+------------
+ - [04/12/2022] Updated plugin dependencies to DNA Center SDK for proper abstraction
+ - [04/12/2022] Fixed issue with large deployments in which DNA Center API result is limited to 500 records
+
 DevNet Code Exchange 
 ---------------------
 
@@ -195,6 +200,5 @@ export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
 ## Author
 
 **Jeff Andiorio** - World Wide Technology 
+
 **Igor Manassypov** - Cisco Systems, <imanassy@cisco.com>
- - [04/12/2022] Updated plugin dependencies to DNA Center SDK for proper abstraction
- - [04/12/2022] Fixed issue with large deployments in which DNA Center API result is limited to 500 records

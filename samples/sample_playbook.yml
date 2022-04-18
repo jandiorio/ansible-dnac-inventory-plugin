@@ -1,6 +1,11 @@
 ---
   - name: Ansible CLI Templates
-    hosts: toronto
+    # hosts: variable can be scoped to DNAC site hierarchy elements
+    # such as
+    # hosts: all scopes to Global site hierarchy view (ie all devices)
+    # hosts: canada scopes to DNAC Site Hierarchy Area called 'canada'
+    # hosts: DNA-DC-3850-TCP scopes to DNAC managed device called 'DNA-DC-3850-TCP'
+    hosts: DNA-DC-3850-TCP
     connection: local
     gather_facts: false
     vars_files:
@@ -20,11 +25,6 @@
         dnac_debug: False
 
     tasks:
-    # - name: DISPLAY THE HOST VARS
-    #   debug:
-    #     msg: "Mgmt host: {{ ansible_host }} platorm: {{ ansible_network_os }}"
-    #   when: ansible_network_os is defined
-
     - name: Get Device Compliance Details
       cisco.dnac.compliance_device_details_info:
         <<: *dnac_login

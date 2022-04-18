@@ -28,6 +28,7 @@ The following host_vars are associated with the network devices:
 - `ansible_network_os` : derived from `os` below and required for Ansible network_cli connection plugin
 - `os` : network operating system as stored in DNA Center's `softwareType`
 - `version` : network operating system version as stored in DNA Center's `softwareVersion`
+- `id` : managed network device unique identifier used by DNA Center. Device Id (or UUID) can be used for filtering and scoping in DNAC API calls
 
 Getting Started
 -------------

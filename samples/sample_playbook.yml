@@ -1,14 +1,36 @@
 ---
-#sample_playbook.yml
+  - name: Ansible CLI Templates
+    hosts: toronto
+    connection: local
+    gather_facts: false
+    vars_files:
+      - credentials.yml
+    vars:
+      dnac_host: "{{dnac_host}}"
+      dnac_username: "{{username}}"
+      dnac_password: "{{password}}"
+      device_name: "{{device_name}}"
+      cli_template: "{{cli_template}}"
+      dnac_login: &dnac_login
+        dnac_host: "{{dnac_host}}"
+        dnac_username: "{{dnac_username}}"
+        dnac_password: "{{dnac_password}}"
+        dnac_version: 2.2.2.3
+        dnac_verify: False
+        dnac_debug: False
 
-- name: DISPLAY THE INVENTORY VARS
-  # 'all' is top node
-  # 'ungrouped' represents devices not assigned to site
-  # can also specify sub-sites in DNAC location hierarchy
-  hosts: all # all is top node, can also specify sub-sites in DNAC location hierarchy
-  gather_facts: no
-  tasks:
-    - name: DISPLAY THE HOST VARS
+    tasks:
+    # - name: DISPLAY THE HOST VARS
+    #   debug:
+    #     msg: "Mgmt host: {{ ansible_host }} platorm: {{ ansible_network_os }}"
+    #   when: ansible_network_os is defined
+
+    - name: Get Device Compliance Details
+      cisco.dnac.compliance_device_details_info:
+        <<: *dnac_login
+        deviceUuid: "{{ id }}"
+      register: device_compliance
+
+    - name: Display Device Compliance Details
       debug:
-        msg: "Mgmt host: {{ ansible_host }} platorm: {{ ansible_network_os }}"
-      when: ansible_network_os is defined
+        msg: "{{ device_compliance }}"

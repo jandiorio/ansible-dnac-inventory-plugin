@@ -5,7 +5,8 @@ host: 10.85.54.180
 #ref: https://dnacentersdk.readthedocs.io/en/latest/
 dnac_version: '2.2.3.3'
 validate_certs: False
-use_dnac_mgmt_int: false
+#collect device's IP address of interface managed by DNAC
+use_dnac_mgmt_int: True
 username: 'igor'
 password: 'Igor1234'
 # toplevel: 'dnac3'

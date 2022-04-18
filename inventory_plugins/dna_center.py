@@ -150,6 +150,7 @@ class InventoryModule(BaseInventoryPlugin):
         host_list = []
 
         for host in self._inventory: 
+            # do not inventorize Access Points
             if host['family'].find('Unified AP') == -1: 
                 host_dict = {}
                 host_dict.update({
@@ -279,6 +280,9 @@ class InventoryModule(BaseInventoryPlugin):
                 self.inventory.set_variable(h['hostname'], 'reachability_status', h['reachabilityStatus'])
                 self.inventory.set_variable(h['hostname'], 'serial_number', h['serialNumber'])
                 self.inventory.set_variable(h['hostname'], 'hw_type', h['series'])
+                # DNAC API calls operate on id of each managed element
+                self.inventory.set_variable(h['hostname'], 'id', h['id'])
+
                 if h['os'].lower() in ['ios', 'ios-xe', 'unified ap']:
                     self.inventory.set_variable(h['hostname'], 'ansible_network_os', 'ios')
                     self.inventory.set_variable(h['hostname'], 'ansible_connection', 'network_cli')

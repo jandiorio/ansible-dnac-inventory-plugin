@@ -1,13 +1,10 @@
 # DNA Center Inventory Plugin
 
-=============================
 DNA Center Inventory Plugin allows you to utilize the network discovery
 capabilities of Cisco's DNA Center controller as a source of inventory for
 Ansible Playbooks.
 
 ## DevNet Code Exchange
-
---------------;
 
 This repository is featured on Cisco DevNet Code Exchange.
 
@@ -15,7 +12,6 @@ This repository is featured on Cisco DevNet Code Exchange.
 
 ## Functionality
 
---------------;
 The DNA Center Inventory plugin will gather all groups (sites) and inventory devices from DNA Center.  The hosts are associated with appropriate sites in the hierarchy.
 
 The following host_vars are associated with the network devices:
@@ -29,8 +25,6 @@ The following host_vars are associated with the network devices:
 - `version` : network operating system version as stored in DNA Center's `softwareVersion`
 
 ## Getting Started
-
---------------;
 
 Follow the instructions below to install the Ansible Inventory Plugin for Cisco DNA Center on your Ansible control node.
 
@@ -134,7 +128,6 @@ vagrant@ubuntu-xenial:~/dna_3_legacy$ ansible-inventory -i inventory_plugins/ --
 
 ## Example Usage
 
---------------;
 To test if your inventory source is functioning correctly, execute the command
 below.
 
@@ -144,13 +137,10 @@ below.
 
 ## Supporting Collateral
 
---------------;
-
 - [Ansible Inventory Plugin Overview Slides](https://www.slideshare.net/secret/P4ltP8elhAw0A)
 
 ## References
 
---------------;
 <https://github.com/ansible/ansible/blob/devel/lib/ansible/plugins/inventory>
 
 <https://docs.ansible.com/ansible/latest/user_guide/intro_dynamic_inventory.html#dynamic-inventory>
@@ -158,8 +148,6 @@ below.
 <https://docs.ansible.com/ansible/latest/dev_guide/developing_inventory.html>
 
 ## Observed Issues
-
---------------;
 
 The inventory plugin builds the inventory from DNA Center includinig group mappings and some limited host variable mappings seen here:
 

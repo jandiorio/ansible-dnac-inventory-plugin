@@ -13,38 +13,38 @@ DOCUMENTATION = r'''
         - Adds inventory to ansible working inventory
 
     options:
-        plugin:  
+        plugin:
             description: Name of the plugin
             required: true
             choices: ['dna_center']
-        host: 
-            description: FQDN of the target host 
+        host:
+            description: FQDN of the target host
             required: true
-        username: 
-            description: user credential for target system 
+        username:
+            description: user credential for target system
             required: true
-        password: 
+        password:
             description: user pass for the target system
             required: true
-        validate_certs: 
+        validate_certs:
             description: certificate validation
             required: false
             default: true
             choices: [true, false]
-        use_dnac_mgmt_int: 
+        use_dnac_mgmt_int:
             description: use the dnac mgmt interface as `ansible_host`
             required: false
             default: true
             choices: [true, false]
-        toplevel: 
+        toplevel:
             description: toplevel group to add groups/hosts to ansible inventory
             required: false
 '''
 
 EXAMPLES = r'''
     ansible-inventory --graph
-    
-    ansible-inventory --list 
+
+    ansible-inventory --list
 '''
 
 from ansible.errors import AnsibleError, AnsibleParserError
@@ -54,7 +54,7 @@ from ansible.plugins.inventory import BaseInventoryPlugin
 import json
 import sys
 
-try: 
+try:
     import requests, urllib3
 except ImportError:
     raise AnsibleError("Python requests module is required for this plugin.")
@@ -66,15 +66,15 @@ class InventoryModule(BaseInventoryPlugin):
     def __init__(self):
         super(InventoryModule, self).__init__()
 
-        # from config 
+        # from config
         self.username = None
         self.password = None
         self.host = None
         self.session = None
         self.use_dnac_mgmt_int = None
         self.toplevel = None
-        
-        # global attributes 
+
+        # global attributes
         self._site_list = None
         self._inventory = None
         self._host_list = None
@@ -87,13 +87,13 @@ class InventoryModule(BaseInventoryPlugin):
         self.session = requests.session()
         if self.validate_certs:
             self.session.verify = True
-        else: 
+        else:
             self.session.verify = False
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-            
+
         self.session.auth = self.username, self.password
         self.session.headers.update({'Content-Type':'application/json'})
-        
+
         try:
             login_results = self.session.post(login_url)
         except Exception as e:
@@ -101,52 +101,52 @@ class InventoryModule(BaseInventoryPlugin):
 
         if login_results.status_code not in [200, 201, 202, 203, 204]:
             raise AnsibleError('failed to login. status code was not in the 200s')
-        else: 
+        else:
             self.session.headers.update({'x-auth-token':login_results.json()['Token']})
-            
+
             return login_results
 
 
     def _get_inventory(self):
         '''
-            :return The json output from the request object response. 
+            :return The json output from the request object response.
         '''
-        
+
         # Version 1.3.0.3 update removed the 'dna/intent' but the api still works
         inventory_url = 'https://' + self.host + '/dna/intent/api/v1/network-device'
         # inventory_url = 'https://' + self.host + '/api/v1/network-device'
         inventory_results = self.session.get(inventory_url)
-        
+
         self._inventory = inventory_results.json()
 
         return inventory_results.json()
 
     def _get_hosts(self):
         '''
-             :param inventory A list of dictionaries representing the entire DNA Center inventory. 
+             :param inventory A list of dictionaries representing the entire DNA Center inventory.
              :return A List of tuples that include the management IP, device hostnanme, and the unique indentifier of the device.
         '''
 
         host_list = []
 
-        for host in self._inventory['response']: 
-            if host['type'].find('Access Point') == -1: 
+        for host in self._inventory['response']:
+            if host['type'].find('Access Point') == -1:
                 host_dict = {}
                 host_dict.update({
                     'managementIpAddress': host['managementIpAddress'],
                     'hostname' : host['hostname'],
                     'id': host['id'],
-                    'os': host['softwareType'], 
-                    'version': host['softwareVersion'], 
+                    'os': host['softwareType'],
+                    'version': host['softwareVersion'],
                     'reachabilityStatus': host['reachabilityStatus'],
                     'role': host['role'],
                     'serialNumber': host['serialNumber'].split(', '),
                     'series': host['series']
                 })
                 host_list.append(host_dict)
-        
+
         self._host_list = host_list
-        
+
         return host_list
 
     def _get_sites(self):
@@ -187,18 +187,18 @@ class InventoryModule(BaseInventoryPlugin):
             :return A single string representing the name of the SITE group of which the device is a member.
         '''
      
-        # Version 1.3.0.3 update remoted the 'dna/intent' from the URI but the API still works. 
+        # Version 1.3.0.3 update remoted the 'dna/intent' from the URI but the API still works.
         url = 'https://' + self.host + '/dna/intent/api/v1/topology/physical-topology?nodeType=device'
         # url = 'https://' + self.host + '/api/v1/topology/physical-topology?nodeType=device'
         results = self.session.get(url)
         devices = results.json()['response']['nodes']
-        
+
         # Get the one device we are looking for
         device = [ dev for dev in devices if dev['id'] == device_id ][0]
 
         # Extract the siteid from the device data 
         site_id = device.get('additionalInfo').get('siteid')
-        
+
         # set the site name from the self._site_list
         site_name = [ site['name'] for site in self._site_list if site['id'] == site_id ]
 
@@ -301,7 +301,7 @@ class InventoryModule(BaseInventoryPlugin):
             self.use_dnac_mgmt_int = self.get_option('use_dnac_mgmt_int')
             self.validate_certs = self.get_option('validate_certs')
             self.toplevel = self.get_option('toplevel')
-        except Exception as e: 
+        except Exception as e:
             raise AnsibleParserError('getting options failed:  {}'.format(e))
 
         # Attempt login to DNAC
@@ -319,4 +319,3 @@ class InventoryModule(BaseInventoryPlugin):
         # Add the hosts to the inventory 
         self._get_hosts()
         self._add_hosts()
-

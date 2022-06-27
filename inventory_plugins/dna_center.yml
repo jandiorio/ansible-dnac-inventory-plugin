@@ -1,7 +1,16 @@
+---
 plugin: dna_center
-host: 'dna-3-dnac.campus.wwtatc.local'
-validate_certs: false
-use_dnac_mgmt_int: false
-username: 'admin'
-password: 'test1234'
-toplevel: 'dnac3'
+host: 10.85.54.180
+#API versions: 1.2.10, 1.3.0, 1.3.1, 1.3.3, 2.1.1, 2.1.2, 2.2.1, 2.2.2.3 and 2.2.3.3
+#ref: https://dnacentersdk.readthedocs.io/en/latest/
+dnac_version: '2.2.3.3'
+validate_certs: False
+#collect device's IP address of interface managed by DNAC
+use_dnac_mgmt_int: True
+username: 'igor'
+password: 'Igor1234'
+# toplevel: 'dnac3'
+# network-device API call returns maximum of 500 records
+# pagination is necessary for large-scale deployments which
+# have more than 500 devices under management
+api_record_limit: 500

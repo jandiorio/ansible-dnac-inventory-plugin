@@ -280,6 +280,7 @@ class InventoryModule(BaseInventoryPlugin):
                 self.inventory.set_variable(h['hostname'], 'reachability_status', h['reachabilityStatus'])
                 self.inventory.set_variable(h['hostname'], 'serial_number', h['serialNumber'])
                 self.inventory.set_variable(h['hostname'], 'hw_type', h['series'])
+                self.inventory.set_variable(h['hostname'], 'role', h['role'])
                 # DNAC API calls operate on id of each managed element
                 self.inventory.set_variable(h['hostname'], 'id', h['id'])
 
